@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
-from app.models.session import Session as SessionModel
-from app.schemas.session import SessionStart, SessionAdminAdjustment
+from ..models.session import Session as SessionModel
+from ..schemas.session import SessionStart, SessionAdminAdjustment
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 NY = ZoneInfo("America/New_York")
 
+
+#not hardcoded
 def create_session(session: SessionStart, db: Session) -> SessionModel:
     db_session = SessionModel(
         user_id=session.user_id,
@@ -25,9 +27,11 @@ def create_session(session: SessionStart, db: Session) -> SessionModel:
     return db_session
 
 def hard_stop_session(session_date: date) -> datetime:
-    local_cutoff = datetime.combine(session_date, time(23, 59, 59), tzinfo=NY)
-    utc_cutoff = local_cutoff.astimezone(timezone.utc)
+    local_cutoff = datetime.combine(session_date, time(23, 59, 59))
+    local_cutoff = local_cutoff.replace(tzinfo=NY)
+    utc_cutoff = local_cutoff.astimezone(timezone.utc).replace(tzinfo=None)
     return utc_cutoff
+
 
 
 def stop_session(user_id: int, db: Session) -> SessionModel | None:
@@ -44,7 +48,7 @@ def stop_session(user_id: int, db: Session) -> SessionModel | None:
 
     db_session = active_sessions[0]
     db_session.status = "stopped"
-    now_utc = datetime.now(timezone.utc)
+    now_utc = now_utc = datetime.utcnow()
     cutoff_utc = hard_stop_session(db_session.session_date)
     db_session.end_time = min(now_utc, cutoff_utc)
 
