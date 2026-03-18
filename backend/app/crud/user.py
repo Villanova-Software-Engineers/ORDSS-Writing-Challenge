@@ -21,7 +21,7 @@ def get_user(id: int, db: Session):
 
 
 def get_user_by_firebase_id(firebase_id: str, db: Session):
-    return db.query(User).filter(User.firebase_id == firebase_id).first()
+    return db.query(User).filter(User.firebase_uid == firebase_id).first()
 
 
 def update_user(id: int, user_data: dict, db: Session):

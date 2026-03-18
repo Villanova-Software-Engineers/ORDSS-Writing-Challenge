@@ -23,7 +23,7 @@ async def create_user_handler(
         return user
     except IntegrityError:
         db.rollback()
-        existing = user_crud.get_user_by_firebase_id(data.firebase_id, db)
+        existing = user_crud.get_user_by_firebase_id(data.firebase_uid, db)
         if existing:
             return existing
         raise HTTPException(
