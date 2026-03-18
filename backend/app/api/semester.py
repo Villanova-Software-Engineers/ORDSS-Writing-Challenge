@@ -8,42 +8,6 @@ from app.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/semesters", tags=["Semesters"])
 
-@router.get("/active", response_model=SemesterResponse)
-@limiter.limit("100/minute;1000/hour")
-async def get_active_semester_route(request: Request, db: Session = Depends(get_db)):
-    try:
-        semester = get_active_semester(db)
-        if not semester:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, 
-                detail="No active semester found"
-            )
-        
-        return semester
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve active semester")
-
-
-# ADMIN ONLY
-@router.get("", response_model=list[SemesterResponse])
-@limiter.limit("100/minute;1000/hour")
-async def get_all_semesters_route(
-    request: Request,
-    skip: int = 0,
-    limit: int = 100,
-    current_user = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    try:
-        semesters = get_semesters(skip, limit, db)
-        return semesters
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve semesters")
-
 
 # ADMIN ONLY
 @router.post("", response_model=SemesterResponse)
@@ -74,48 +38,40 @@ async def create_semester_route(
 
 
 # ADMIN ONLY
-@router.patch("/{id}/end", response_model=SemesterResponse)
-@limiter.limit("5/minute;50/hour")
-async def end_semester_route(
+@router.get("", response_model=list[SemesterResponse])
+@limiter.limit("100/minute;1000/hour")
+async def get_all_semesters_route(
     request: Request,
-    id: int,
+    skip: int = 0,
+    limit: int = 100,
     current_user = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     try:
-        semester = get_semester(id, db)
-        if not semester:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found")
-        
-        if not semester.is_active:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Semester is already ended")
-        
-        ended_semester = end_semester(id, db)
-        return ended_semester
+        semesters = get_semesters(skip, limit, db)
+        return semesters
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to end semester")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve semesters")
 
 
-# ADMIN ONLY
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-@limiter.limit("5/minute;30/hour")
-async def delete_semester_route(
-    request: Request, 
-    id: int, 
-    current_user = Depends(require_admin), 
-    db: Session = Depends(get_db)
-):
+@router.get("/active", response_model=SemesterResponse)
+@limiter.limit("100/minute;1000/hour")
+async def get_active_semester_route(request: Request, db: Session = Depends(get_db)):
     try:
-        result = delete_semester(id, db)
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found")  # Add this
-        return Response(status_code=status.HTTP_204_NO_CONTENT)
+        semester = get_active_semester(db)
+        if not semester:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="No active semester found"
+            )
+        
+        return semester
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete semester")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve active semester")
 
 
 @router.get("/{id}", response_model=SemesterResponse)
@@ -164,6 +120,31 @@ async def update_semester_route(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Failed to update semester")
 
 
+# ADMIN ONLY
+@router.patch("/{id}/end", response_model=SemesterResponse)
+@limiter.limit("5/minute;50/hour")
+async def end_semester_route(
+    request: Request,
+    id: int,
+    current_user = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    try:
+        semester = get_semester(id, db)
+        if not semester:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found")
+        
+        if not semester.is_active:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Semester is already ended")
+        
+        ended_semester = end_semester(id, db)
+        return ended_semester
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to end semester")
+
+
 @router.post("/{id}/join", response_model=SemesterResponse)
 @limiter.limit("10/minute;100/hour")
 async def join_semester_route(
@@ -189,3 +170,23 @@ async def join_semester_route(
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to join semester")
+    
+
+# ADMIN ONLY
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute;30/hour")
+async def delete_semester_route(
+    request: Request, 
+    id: int, 
+    current_user = Depends(require_admin), 
+    db: Session = Depends(get_db)
+):
+    try:
+        result = delete_semester(id, db)
+        if not result:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Semester not found")  # Add this
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete semester")
