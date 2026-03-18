@@ -9,6 +9,7 @@ import Dashboard from "./components/Dashboard";
 import Profile from "./components/Profile";
 import MessageBoard from "./components/MessageBoard";
 import Leaderboard from "./components/Leaderboard";
+import AdminPage from "./components/admin/AdminPage";
 
 function AppLayout() {
   return (
@@ -20,6 +21,7 @@ function AppLayout() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/messages" element={<MessageBoard />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>
     </div>
