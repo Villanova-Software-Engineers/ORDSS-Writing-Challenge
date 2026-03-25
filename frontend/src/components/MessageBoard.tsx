@@ -95,7 +95,7 @@ function CommentItem({ comment, isAdmin, onDelete }: { comment: Comment; isAdmin
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-700 leading-relaxed">{comment.content}</p>
+            <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
             <div className="text-[10px] text-slate-400 mt-1">{timeAgo(comment.created_at)}</div>
           </div>
           {isAdmin && onDelete && (
@@ -140,7 +140,7 @@ function MessageCard({ msg, currentUserId, isAdmin }: MessageCardProps) {
   const handleSaveEdit = () => {
     if (editValue.trim()) {
       editMutation.mutate(
-        { messageId: msg.id, content: editValue.trim() },
+        { messageId: msg.id, content: editValue },
         {
           onSuccess: () => setEditing(false),
         }
@@ -151,7 +151,7 @@ function MessageCard({ msg, currentUserId, isAdmin }: MessageCardProps) {
   const handlePostComment = () => {
     if (commentInput.trim()) {
       commentMutation.mutate(
-        { messageId: msg.id, content: commentInput.trim() },
+        { messageId: msg.id, content: commentInput },
         {
           onSuccess: () => setCommentInput(""),
         }
@@ -278,7 +278,7 @@ function MessageCard({ msg, currentUserId, isAdmin }: MessageCardProps) {
               </div>
             </div>
           ) : (
-            <p className="text-slate-800 text-sm leading-relaxed mt-2">{msg.content}</p>
+            <p className="text-slate-800 text-sm leading-relaxed mt-2 whitespace-pre-wrap">{msg.content}</p>
           )}
 
           {/* Actions Row */}
@@ -376,9 +376,9 @@ export default function MessageBoard() {
 
   const handlePost = () => {
     if (!content.trim()) return;
-    console.log("[MessageBoard] Posting message:", { content: content.trim(), category: "win" });
+    console.log("[MessageBoard] Posting message:", { content, category: "win" });
     createMutation.mutate(
-      { content: content.trim(), category: "win" },
+      { content, category: "win" },
       {
         onSuccess: (newMessage) => {
           console.log("[MessageBoard] Message posted successfully:", newMessage);

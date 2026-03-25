@@ -44,7 +44,7 @@ function MiniMessageCard({ msg }: { msg: MessageResponse }) {
               {msg.author_name}
             </span>
           </div>
-          <p className="text-sm text-slate-600 line-clamp-2">{msg.content}</p>
+          <p className="text-sm text-slate-600 line-clamp-2 whitespace-pre-wrap">{msg.content}</p>
         </div>
         <span className="text-xs text-slate-400 shrink-0">
           {timeAgo(msg.created_at)}
