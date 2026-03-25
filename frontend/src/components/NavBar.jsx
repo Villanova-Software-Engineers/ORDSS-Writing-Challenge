@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/config";
 import { clearTokenCache } from "../services/apiClient";
+import { useAuth } from "../providers/AuthProvider";
 
 const navItems = [
   {
@@ -43,6 +44,7 @@ const navItems = [
   {
     to: "/admin",
     label: "Admin",
+    adminOnly: true,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3l7 4v5c0 5-3.5 9-7 9s-7-4-7-9V7l7-4z" />
@@ -53,6 +55,7 @@ const navItems = [
 
 function NavBar() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -75,25 +78,27 @@ function NavBar() {
 
       {/* Nav links */}
       <div className="flex-1 flex flex-col py-3 gap-1">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/dashboard"}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 mx-1 rounded-lg transition-colors whitespace-nowrap ${
-                isActive
-                  ? "bg-background/20 text-background"
-                  : "text-background/60 hover:text-background hover:bg-background/10"
-              }`
-            }
-          >
-            {item.icon}
-            <span className="text-sm font-medium ">
-              {item.label}
-            </span>
-          </NavLink>
-        ))}
+        {navItems
+          .filter((item) => !item.adminOnly || isAdmin)
+          .map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/dashboard"}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2.5 mx-1 rounded-lg transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "bg-background/20 text-background"
+                    : "text-background/60 hover:text-background hover:bg-background/10"
+                }`
+              }
+            >
+              {item.icon}
+              <span className="text-sm font-medium ">
+                {item.label}
+              </span>
+            </NavLink>
+          ))}
       </div>
 
       {/* Logout */}

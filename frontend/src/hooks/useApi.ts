@@ -54,6 +54,10 @@ export const queryKeys = {
 
   // Sessions
   sessions: ["sessions"] as const,
+
+  // Admin
+  admin: ["admin"] as const,
+  adminUsers: ["admin", "users"] as const,
 } as const;
 
 // ── Streak Hooks ────────────────────────────────────────────────────────────
@@ -146,9 +150,19 @@ export function useCreateMessage(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: MessageCreate) =>
-      api.post<MessageResponse, MessageCreate>("/api/messages", data),
+    mutationFn: async (data: MessageCreate) => {
+      console.log("[useCreateMessage] Sending POST request to /api/messages with data:", data);
+      try {
+        const result = await api.post<MessageResponse, MessageCreate>("/api/messages", data);
+        console.log("[useCreateMessage] POST request successful, response:", result);
+        return result;
+      } catch (error) {
+        console.error("[useCreateMessage] POST request failed:", error);
+        throw error;
+      }
+    },
     onSuccess: (newMessage) => {
+      console.log("[useCreateMessage] onSuccess called with message:", newMessage);
       // Optimistically add to cache for limit=50
       queryClient.setQueryData<MessageResponse[]>(
         queryKeys.messagesList(50),
@@ -166,7 +180,7 @@ export function useCreateMessage(
       queryClient.invalidateQueries({ queryKey: queryKeys.messages });
     },
     onError: (error) => {
-      console.error("[useCreateMessage] Failed to create message:", error);
+      console.error("[useCreateMessage] onError called with error:", error);
     },
     ...options,
   });
@@ -185,17 +199,7 @@ export function useLikeMessage() {
   });
 }
 
-export function useDislikeMessage() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (messageId: string) =>
-      api.post<MessageResponse>(`/api/messages/${messageId}/dislike`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.messages });
-    },
-  });
-}
+// Dislike functionality removed
 
 export function useAddComment() {
   const queryClient = useQueryClient();
@@ -332,6 +336,251 @@ export function useTodaySessions(
     queryKey: [...queryKeys.sessions, "today"],
     queryFn: () => api.get<WritingSessionsListResponse>("/api/sessions/today"),
     staleTime: 30 * 1000,
+    ...options,
+  });
+}
+
+// ── Admin Hooks (Admin only) ────────────────────────────────────────────────
+
+// Admin - Create Semester
+interface SemesterCreateData {
+  name: string;
+  start_date: string;
+  end_date: string;
+  auto_clear?: boolean;
+}
+
+export function useCreateSemester(
+  options?: UseMutationOptions<Semester, Error, SemesterCreateData>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: SemesterCreateData) =>
+      api.post<Semester, SemesterCreateData>("/api/semesters", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesters });
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesterActive });
+    },
+    ...options,
+  });
+}
+
+// Admin - Update Semester
+export function useUpdateSemester(
+  options?: UseMutationOptions<Semester, Error, { semesterId: number; name?: string; access_code?: string }>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ semesterId, ...data }) =>
+      api.patch<Semester>(`/api/semesters/${semesterId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesters });
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesterActive });
+    },
+    ...options,
+  });
+}
+
+// Admin - End Semester
+export function useEndSemester(
+  options?: UseMutationOptions<Semester, Error, number>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (semesterId: number) =>
+      api.patch<Semester>(`/api/semesters/${semesterId}/end`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesters });
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesterActive });
+    },
+    ...options,
+  });
+}
+
+// Admin - Delete Semester
+export function useDeleteSemester(
+  options?: UseMutationOptions<void, Error, number>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (semesterId: number) =>
+      api.delete<void>(`/api/semesters/${semesterId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesters });
+      queryClient.invalidateQueries({ queryKey: queryKeys.semesterActive });
+    },
+    ...options,
+  });
+}
+
+// Admin - User Management
+interface AdminUserListResponse {
+  users: Array<{
+    id: number;
+    uid: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    department: string;
+    is_admin: boolean;
+    created_at: string | null;
+  }>;
+  total: number;
+}
+
+export function useAdminUsers(
+  limit = 50,
+  offset = 0,
+  options?: Omit<UseQueryOptions<AdminUserListResponse>, "queryKey" | "queryFn">
+) {
+  return useQuery({
+    queryKey: [...queryKeys.adminUsers, limit, offset],
+    queryFn: () => api.get<AdminUserListResponse>("/api/admin/users", { limit, offset }),
+    staleTime: 30 * 1000,
+    ...options,
+  });
+}
+
+export function useSetUserAdmin(
+  options?: UseMutationOptions<any, Error, { userId: number; isAdmin: boolean }>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, isAdmin }) =>
+      api.patch(`/api/admin/users/${userId}/admin`, { is_admin: isAdmin }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers });
+    },
+    ...options,
+  });
+}
+
+export function useUpdateUser(
+  options?: UseMutationOptions<any, Error, { userId: number; firstName: string; lastName: string; department: string }>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, firstName, lastName, department }) =>
+      api.patch(`/api/admin/users/${userId}`, { first_name: firstName, last_name: lastName, department }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers });
+    },
+    ...options,
+  });
+}
+
+export function useDeleteUser(
+  options?: UseMutationOptions<void, Error, number>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: number) =>
+      api.delete<void>(`/api/admin/users/${userId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers });
+    },
+    ...options,
+  });
+}
+
+// Admin - Sessions
+interface AdminSessionsListResponse {
+  sessions: Array<{
+    id: number;
+    user_uid: string;
+    user_name: string;
+    duration: number;
+    description?: string;
+    started_at: string;
+    ended_at: string;
+    semester_id?: number;
+    created_at: string;
+  }>;
+  total_time: number;
+}
+
+export function useAdminSessions(
+  limit = 100,
+  semesterId?: number,
+  userId?: number,
+  options?: Omit<UseQueryOptions<AdminSessionsListResponse>, "queryKey" | "queryFn">
+) {
+  return useQuery({
+    queryKey: ["admin", "sessions", limit, semesterId, userId],
+    queryFn: () => api.get<AdminSessionsListResponse>("/api/admin/sessions", {
+      limit,
+      semester_id: semesterId,
+      user_id: userId
+    }),
+    staleTime: 30 * 1000,
+    ...options,
+  });
+}
+
+// Admin - Message Management
+export function useAdminUpdateMessage(
+  options?: UseMutationOptions<any, Error, { messageId: string; content: string }>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ messageId, content }) =>
+      api.patch(`/api/admin/messages/${messageId}`, { content }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.messages });
+    },
+    ...options,
+  });
+}
+
+export function useAdminDeleteMessage(
+  options?: UseMutationOptions<void, Error, string>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (messageId: string) =>
+      api.delete<void>(`/api/admin/messages/${messageId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.messages });
+    },
+    ...options,
+  });
+}
+
+export function usePinMessage(
+  options?: UseMutationOptions<any, Error, { messageId: string; isPinned: boolean }>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ messageId, isPinned }) =>
+      api.patch(`/api/admin/messages/${messageId}/pin`, { is_pinned: isPinned }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.messages });
+    },
+    ...options,
+  });
+}
+
+export function useAdminDeleteComment(
+  options?: UseMutationOptions<void, Error, string>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (commentId: string) =>
+      api.delete<void>(`/api/admin/comments/${commentId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.messages });
+    },
     ...options,
   });
 }
