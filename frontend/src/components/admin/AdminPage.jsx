@@ -21,7 +21,7 @@ function AdminPage() {
   const activeContent = sections.find((section) => section.id === activeSection)?.content;
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <AdminNav activeId={activeSection} onSelect={setActiveSection} />
       <main className="flex-1 overflow-y-auto bg-slate-50 p-8">
         <div className="flex flex-col gap-8">
