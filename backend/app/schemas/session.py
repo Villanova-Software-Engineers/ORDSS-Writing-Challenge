@@ -1,34 +1,36 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
+from typing import Optional
 
-class SessionStart(BaseModel):
+
+#make session base
+#look at quiz for example
+class SessionBase(BaseModel):
     semester_id: int
     user_id: int
-    description: str | None = None
+    description: Optional[str] = None
 
+
+class SessionStart(SessionBase):
+    pass
+
+
+class SessionStop(SessionBase):
+    pass
+
+class SessionAdminAdjustment(SessionBase):
     model_config = ConfigDict(from_attributes=True)
-
-
-class SessionStop(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    user_id: int
-
-class SessionAdminAdjustment(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    user_id: int
     session_date: date
-    duration: int  # duration in minutes
+    duration: int
 
-class SessionRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class SessionRead(SessionBase):
     id: int
-    user_id: int
-    semester_id: int
     status: str
-    duration: int | None
     start_time: datetime
     end_time: datetime | None
-    description: str | None
+    duration: int | None
+    session_date: date
     created_at: datetime
     updated_at: datetime
-    session_date: date
+
+    model_config = ConfigDict(from_attributes=True)

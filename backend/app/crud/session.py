@@ -7,7 +7,6 @@ from zoneinfo import ZoneInfo
 NY = ZoneInfo("America/New_York")
 
 
-#not hardcoded
 def create_session(session: SessionStart, db: Session) -> SessionModel:
     db_session = SessionModel(
         user_id=session.user_id,
@@ -26,6 +25,32 @@ def create_session(session: SessionStart, db: Session) -> SessionModel:
     db.refresh(db_session)
     return db_session
 
+def get_user_sessions(user_id: int, db: Session) -> list[SessionModel]:
+    return db.query(SessionModel).filter(SessionModel.user_id == user_id).all()
+
+
+def get_current_session(user_id: int, db: Session) -> SessionModel | None:
+    return (
+        db.query(SessionModel)
+        .filter(SessionModel.user_id == user_id, SessionModel.status == "active")
+        .first()
+    )
+
+# 
+def adjust_session_admin(adjustment: SessionAdminAdjustment, db: Session):
+    db_session = (
+        db.query(SessionModel)
+        .filter(SessionModel.user_id == adjustment.user_id, SessionModel.session_date == adjustment.session_date)
+        .first()
+    )
+    if not db_session:
+        return None
+    db_session.duration = adjustment.duration
+    db.commit()
+    db.refresh(db_session)
+    return db_session
+
+
 def hard_stop_session(session_date: date) -> datetime:
     local_cutoff = datetime.combine(session_date, time(23, 59, 59))
     local_cutoff = local_cutoff.replace(tzinfo=NY)
@@ -33,6 +58,8 @@ def hard_stop_session(session_date: date) -> datetime:
     return utc_cutoff
 
 
+#hard stop and stop
+#est
 
 def stop_session(user_id: int, db: Session) -> SessionModel | None:
     active_sessions = (
@@ -48,7 +75,7 @@ def stop_session(user_id: int, db: Session) -> SessionModel | None:
 
     db_session = active_sessions[0]
     db_session.status = "stopped"
-    now_utc = now_utc = datetime.utcnow()
+    now_utc = now_utc = datetime.now(timezone.utc)
     cutoff_utc = hard_stop_session(db_session.session_date)
     db_session.end_time = min(now_utc, cutoff_utc)
 
@@ -60,33 +87,13 @@ def stop_session(user_id: int, db: Session) -> SessionModel | None:
     db.refresh(db_session)
     return db_session
 
+#hastag above all admin stuf 
+#admin functions all in one file check it out
 
 
 
-def adjust_session_admin(adjustment: SessionAdminAdjustment, db: Session):
-    db_session = (
-        db.query(SessionModel)
-        .filter(SessionModel.user_id == adjustment.user_id, SessionModel.session_date == adjustment.session_date)
-        .first()
-    )
-    if not db_session:
-        return None
-    db_session.duration = adjustment.duration
-    db.commit()
-    db.refresh(db_session)
-    return db_session
 
 
-def get_user_sessions(user_id: int, db: Session) -> list[SessionModel]:
-    return db.query(SessionModel).filter(SessionModel.user_id == user_id).all()
-
-
-def get_current_session(user_id: int, db: Session) -> SessionModel | None:
-    return (
-        db.query(SessionModel)
-        .filter(SessionModel.user_id == user_id, SessionModel.status == "active")
-        .first()
-    )
 
 
     
