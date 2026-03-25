@@ -10,42 +10,22 @@ import Dashboard from "./components/Dashboard";
 import Profile from "./components/Profile";
 import MessageBoard from "./components/MessageBoard";
 import Leaderboard from "./components/Leaderboard";
-import Admin from "./components/Admin";
+import AdminPage from "./components/admin/AdminPage";
 
 function AppLayout() {
   return (
-    <Routes>
-      <Route
-        path="/admin/*"
-        element={
-          <div className="flex min-h-screen">
-            <AdminNavBar />
-            <main className="flex-1 overflow-y-auto">
-              <Routes>
-                <Route path="/" element={<Admin />} />
-              </Routes>
-            </main>
-          </div>
-        }
-      />
-
-      <Route
-        path="/*"
-        element={
-          <div className="flex min-h-screen">
-            <NavBar />
-            <main className="flex-1 overflow-y-auto">
-              <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/messages" element={<MessageBoard />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-              </Routes>
-            </main>
-          </div>
-        }
-      />
-    </Routes>
+    <div className="flex min-h-screen">
+      <NavBar />
+      <main className="flex-1 overflow-y-auto">
+        <Routes>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/messages" element={<MessageBoard />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 
