@@ -11,6 +11,7 @@ import {
 import { auth } from '../../firebase/config';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, authReady } from '../../firebase/config';
+import { clearUserLocalStorage } from '../../services/apiClient';
 import type {
   SignInRequest,
   SignUpRequest,
@@ -214,6 +215,10 @@ export class AuthService {
   // Sign out
   static async signOut(): Promise<void> {
     await authReady;
+
+    // Clear all user-specific localStorage data to prevent data leakage between accounts
+    clearUserLocalStorage();
+
     await firebaseSignOut(auth);
   }
 
