@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, or_, and_
 from typing import Optional, Tuple, List
+from datetime import datetime
 from app.models import Message, Comment, User
 from app.schemas.message import MessageCreate, MessageUpdate, CommentCreate, MessageResponse, CommentResponse
 
@@ -55,7 +56,7 @@ def get_messages_paginated(
             parts = cursor.split("_", 2)
             if len(parts) == 3:
                 is_pinned = parts[0] == "1"
-                cursor_timestamp = parts[1]
+                cursor_timestamp = datetime.fromisoformat(parts[1])
                 cursor_id = int(parts[2])
 
                 if is_pinned:
