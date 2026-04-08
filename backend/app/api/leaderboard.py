@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from typing import Optional
-from app.auth import get_current_user, CurrentUser
+from app.api.auth import require_semester_registration
+from app.schemas.auth import CurrentUser
 from app.core import limiter
 from app.core.database import get_db
 from app.schemas.leaderboard import LeaderboardResponse
@@ -16,10 +17,9 @@ async def get_leaderboard_route(
     request: Request,
     semester_id: Optional[int] = None,
     limit: int = 50,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
-    
     entries, semester_id_result, semester_name = get_leaderboard(
         db,
         current_user.id,

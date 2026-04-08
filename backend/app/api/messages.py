@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import Optional
-from app.auth import get_current_user, CurrentUser
+from app.api.auth import require_semester_registration
+from app.schemas.auth import CurrentUser
 from app.core import limiter
 from app.core.database import get_db
 from app.models import User
@@ -32,7 +33,7 @@ async def get_messages(
     request: Request,
     limit: int = 20,
     cursor: Optional[str] = None,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
     """
@@ -55,7 +56,7 @@ async def get_messages(
 async def create_message_route(
     request: Request,
     data: MessageCreate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
     if not data.content.strip():
@@ -76,7 +77,7 @@ async def update_message_route(
     request: Request,
     message_id: int,
     data: MessageUpdate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
     """Update a message (only by the author)"""
@@ -100,7 +101,7 @@ async def update_message_route(
 async def delete_message_route(
     request: Request,
     message_id: int,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
     """Delete a message (only by the author or admin)"""
@@ -121,7 +122,7 @@ async def delete_message_route(
 async def toggle_like_route(
     request: Request,
     message_id: int,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
     """Toggle like on a message"""
@@ -142,7 +143,7 @@ async def add_comment_route(
     request: Request,
     message_id: int,
     data: CommentCreate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
     """Add a comment to a message"""
