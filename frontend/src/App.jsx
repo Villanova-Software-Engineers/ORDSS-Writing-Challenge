@@ -39,10 +39,20 @@ function ProtectedRoute({ children }) {
 
 function SemesterProtectedRoute({ children }) {
   const { user, profile, isLoading, isAdmin } = useAuth();
+
   if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth/sign-in" replace />;
   if (isAdmin) return children;
-  if (!profile?.current_semester?.is_active) return <Navigate to="/auth/professor-code" replace />;
+
+  // Wait for profile to load before checking semester
+  if (!profile) {
+    return <LoadingScreen />;
+  }
+
+  if (!profile.current_semester?.is_active) {
+    return <Navigate to="/auth/professor-code" replace />;
+  }
+
   return children;
 }
 

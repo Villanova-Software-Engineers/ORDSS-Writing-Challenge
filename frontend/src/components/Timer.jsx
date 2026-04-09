@@ -210,7 +210,7 @@ function Timer({ onSessionSave, onTimerUpdate }) {
                     : 'bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800/50 dark:to-slate-700/50 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600'
                 }`}
               >
-                {wordCount}/10
+                {wordCount}/10 words
               </span>
             </div>
             <div className="relative">
@@ -223,7 +223,6 @@ function Timer({ onSessionSave, onTimerUpdate }) {
                 className="w-full px-5 py-4 text-base border-2 border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl text-gray-900 dark:text-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-400 outline-none disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition-all duration-300 resize-none"
               />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Maximum 10 words</p>
           </div>
 
           {/* Save Button */}

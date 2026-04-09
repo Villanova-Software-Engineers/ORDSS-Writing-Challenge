@@ -20,14 +20,15 @@ const ProfessorCodePage: React.FC = () => {
   const [error, setError] = useState('');
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  // Check if user is admin
+  // Check if user is admin or already has an active semester
   useEffect(() => {
     if (profile?.is_admin) {
       // Admins don't need to join a semester - skip to dashboard
       navigate('/dashboard', { replace: true });
+    } else if (profile?.current_semester?.is_active) {
+      // User already has an active semester - skip to dashboard
+      navigate('/dashboard', { replace: true });
     }
-    // Note: We don't auto-redirect if user has a semester - they must verify the access code
-    // This prevents bypass of semester verification
   }, [profile, navigate]);
 
   const handleSubmit = async () => {
