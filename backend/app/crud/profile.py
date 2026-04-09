@@ -45,6 +45,14 @@ def get_user_profile(db: Session, user_id: int, uid: str, email: Optional[str], 
             created_at=None,
         )
 
+    # Auto-clear semester reference if it's inactive or deleted
+    # This prevents users from being stuck asking for semester code on every login
+    if user.current_semester_id:
+        semester = db.query(Semester).filter(Semester.id == user.current_semester_id).first()
+        if not semester or not semester.is_active:
+            user.current_semester_id = None
+            db.commit()
+
     current_semester_info = get_semester_info(db, user.current_semester_id)
 
     return UserProfileResponse(
