@@ -1,0 +1,26 @@
+name: Keep Render Server Alive
+
+on:
+  schedule:
+    # Runs every 5 minutes (GitHub Actions minimum interval)
+    # Note: GitHub Actions schedule has a minimum of 5 minutes, not 6
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping-health-endpoint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          echo "Pinging health endpoint at $(date)"
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.API_URL }}/api/health)
+          echo "Response status code: $response"
+
+          if [ $response -eq 200 ]; then
+            echo "✅ Server is alive and responding"
+          else
+            echo "⚠️ Server returned status code $response"
+            exit 1
+          fi
