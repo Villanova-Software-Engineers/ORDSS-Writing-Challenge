@@ -38,12 +38,6 @@ function LeaderboardRow({ entry }) {
         </span>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2 text-text font-mono">
-          <Clock size={14} className="text-muted" />
-          {formatTime(entry.total_time)}
-        </div>
-      </td>
-      <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <Flame
             size={16}
@@ -57,6 +51,12 @@ function LeaderboardRow({ entry }) {
         <div className="flex items-center gap-2 text-text">
           <Calendar size={14} className="text-muted" />
           {entry.active_days}
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2 text-text font-mono">
+          <Clock size={14} className="text-muted" />
+          {formatTime(entry.total_time)}
         </div>
       </td>
     </tr>
@@ -85,7 +85,7 @@ function ArchivedLeaderboardPanel() {
   return (
     <AdminSection
       title="Past Leaderboards"
-      description="View archived leaderboards from previous semesters. Rankings are based on each semester's data."
+      description="View archived leaderboards from previous semesters. Users are ranked by streak (highest first), then by active days, then by total time."
     >
       <div className="flex flex-col gap-6">
         {/* Semester Selector */}
@@ -136,13 +136,13 @@ function ArchivedLeaderboardPanel() {
                         Name
                       </th>
                       <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
-                        Total Time
-                      </th>
-                      <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
                         Streak
                       </th>
                       <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
                         Active Days
+                      </th>
+                      <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
+                        Total Time
                       </th>
                     </tr>
                   </thead>

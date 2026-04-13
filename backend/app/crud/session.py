@@ -22,9 +22,14 @@ def session_to_response(session: WritingSession) -> WritingSessionResponse:
 def create_writing_session(
     data: WritingSessionCreate,
     user_id: int,
-    db: Session
+    db: Session,
+    semester_id: Optional[int] = None
 ) -> WritingSession:
-    semester = db.query(Semester).filter(Semester.is_active == True).first()
+    # Use provided semester_id (from user's current_semester_id) instead of querying for active semester
+    # This prevents sessions from being orphaned when semesters are ended/deleted
+    if semester_id is None:
+        semester = db.query(Semester).filter(Semester.is_active == True).first()
+        semester_id = semester.id if semester else None
 
     started_at = datetime.fromisoformat(data.started_at.replace("Z", "+00:00"))
     ended_at = datetime.fromisoformat(data.ended_at.replace("Z", "+00:00"))
@@ -35,7 +40,7 @@ def create_writing_session(
         description=data.description,
         started_at=started_at,
         ended_at=ended_at,
-        semester_id=semester.id if semester else None,
+        semester_id=semester_id,
     )
     db.add(session)
     db.commit()
@@ -52,8 +57,13 @@ def get_user_sessions(
 
     query = db.query(WritingSession).filter(WritingSession.user_id == user_id)
 
-    if semester_id:
+    # Filter by exact semester match to prevent showing sessions from other/deleted semesters
+    if semester_id is not None:
+        # Only sessions from this specific semester (excludes NULL sessions from deleted semesters)
         query = query.filter(WritingSession.semester_id == semester_id)
+    else:
+        # Only sessions with NULL semester_id (no active semester case)
+        query = query.filter(WritingSession.semester_id.is_(None))
 
     sessions = query.order_by(desc(WritingSession.created_at)).limit(limit).all()
     total_time = sum(s.duration for s in sessions)
@@ -61,19 +71,28 @@ def get_user_sessions(
     return sessions, total_time
 
 
-def get_today_sessions(user_id: int, db: Session) -> Tuple[List[WritingSession], int]:
+def get_today_sessions(user_id: int, db: Session, semester_id: Optional[int] = None) -> Tuple[List[WritingSession], int]:
     # Use America/New_York timezone to properly handle EST/EDT transitions
     eastern = ZoneInfo("America/New_York")
     now_eastern = datetime.now(eastern)
     today_start = now_eastern.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    sessions = (
+    query = (
         db.query(WritingSession)
         .filter(WritingSession.user_id == user_id)
         .filter(WritingSession.started_at >= today_start)
-        .order_by(desc(WritingSession.created_at))
-        .all()
     )
+
+    # Filter by exact semester match to prevent showing sessions from other/deleted semesters
+    # When semester is deleted, semester_id becomes NULL, so we need exact matching
+    if semester_id is not None:
+        # Only sessions from this specific semester (excludes NULL sessions from deleted semesters)
+        query = query.filter(WritingSession.semester_id == semester_id)
+    else:
+        # Only sessions with NULL semester_id (no active semester case)
+        query = query.filter(WritingSession.semester_id.is_(None))
+
+    sessions = query.order_by(desc(WritingSession.created_at)).all()
 
     total_time = sum(s.duration for s in sessions)
 

@@ -7,8 +7,9 @@ from app.schemas.streak import StreakResponse
 
 def get_user_streak(user_id: int, db: Session, semester_id: Optional[int] = None) -> Optional[Streak]:
     query = db.query(Streak).filter(Streak.user_id == user_id)
-    if semester_id:
-        query = query.filter(Streak.semester_id == semester_id)
+    # Always filter by semester_id to prevent showing stale data from other semesters
+    # If semester_id is None, only return streaks with NULL semester_id (legacy data should not be shown)
+    query = query.filter(Streak.semester_id == semester_id)
     return query.first()
 
 

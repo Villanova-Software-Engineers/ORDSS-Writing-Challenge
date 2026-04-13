@@ -41,7 +41,7 @@ async def create_session(
         )
 
     try:
-        session = create_writing_session(data, current_user.id, db)
+        session = create_writing_session(data, current_user.id, db, current_user.current_semester_id)
         return session_to_response(session)
     except ValueError:
         raise HTTPException(
@@ -60,7 +60,9 @@ async def get_sessions(
     db: Session = Depends(get_db),
 ):
     """Get current user's writing sessions"""
-    sessions, total_time = get_user_sessions(current_user.id, db, limit, semester_id)
+    # If no semester_id provided, use the user's current semester
+    effective_semester_id = semester_id if semester_id is not None else current_user.current_semester_id
+    sessions, total_time = get_user_sessions(current_user.id, db, limit, effective_semester_id)
 
     return WritingSessionsListResponse(
         sessions=[session_to_response(s) for s in sessions],
@@ -76,7 +78,7 @@ async def get_today_sessions_route(
     db: Session = Depends(get_db),
 ):
     """Get current user's writing sessions for today (EST/EDT)"""
-    sessions, total_time = get_today_sessions(current_user.id, db)
+    sessions, total_time = get_today_sessions(current_user.id, db, current_user.current_semester_id)
 
     return WritingSessionsListResponse(
         sessions=[session_to_response(s) for s in sessions],

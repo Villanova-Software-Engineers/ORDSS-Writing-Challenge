@@ -19,8 +19,12 @@ def get_session_stats(db: Session, semester_id: Optional[int]) -> Dict[int, Any]
         func.sum(WritingSession.duration).label("total_time"),
         func.count(func.distinct(func.date(WritingSession.started_at))).label("active_days"),
     )
-    if semester_id:
+    # Filter by exact semester match to prevent showing sessions from deleted semesters
+    if semester_id is not None:
         query = query.filter(WritingSession.semester_id == semester_id)
+    else:
+        # Only sessions with NULL semester_id (no active semester case)
+        query = query.filter(WritingSession.semester_id.is_(None))
 
     return {s.user_id: s for s in query.group_by(WritingSession.user_id).all()}
 
@@ -61,7 +65,7 @@ def build_user_stats(users: List, session_map: Dict) -> List[Dict]:
             "active_days": active_days,
         })
 
-    stats.sort(key=lambda x: (-x["total_time"], -x["streak"]))
+    stats.sort(key=lambda x: (-x["streak"], -x["active_days"], -x["total_time"]))
     return stats
 
 
@@ -88,8 +92,12 @@ def add_current_user_if_missing(
         func.count(func.distinct(func.date(WritingSession.started_at))).label("active_days"),
     ).filter(WritingSession.user_id == current_user_id)
 
-    if semester_id:
+    # Filter by exact semester match to prevent showing sessions from deleted semesters
+    if semester_id is not None:
         query = query.filter(WritingSession.semester_id == semester_id)
+    else:
+        # Only sessions with NULL semester_id (no active semester case)
+        query = query.filter(WritingSession.semester_id.is_(None))
 
     result = query.first()
 

@@ -158,7 +158,8 @@ function RecentMessagesPanel() {
 function RecentSessionsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { data: sessionsData, isLoading } = useSessions(5);
+  const { data: semester } = useActiveSemester();
+  const { data: sessionsData, isLoading } = useSessions(5, semester?.id);
 
   const formatDuration = (seconds: number): string => {
     const h = Math.floor(seconds / 3600);
@@ -348,16 +349,6 @@ export default function Dashboard() {
       <div className="space-y-6">
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Semester Total */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
-            <div className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
-              Semester Total
-            </div>
-            <div className="text-3xl font-bold text-primary font-mono">
-              {allSessionsData ? formatTime(allSessionsData.total_time) : "00:00:00"}
-            </div>
-          </div>
-
           {/* Streak */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
             <div className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
@@ -386,6 +377,16 @@ export default function Dashboard() {
             </div>
             <div className="text-3xl font-bold text-text font-mono">
               {formatTime(todayWritingTime)}
+            </div>
+          </div>
+
+          {/* Semester Total */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
+            <div className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+              Semester Total
+            </div>
+            <div className="text-3xl font-bold text-primary font-mono">
+              {allSessionsData ? formatTime(allSessionsData.total_time) : "00:00:00"}
             </div>
           </div>
         </div>

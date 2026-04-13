@@ -65,12 +65,6 @@ function LeaderboardRow({ entry }: LeaderboardRowProps) {
         </span>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2 text-text font-mono">
-          <Clock size={14} className="text-muted" />
-          {formatTime(entry.total_time)}
-        </div>
-      </td>
-      <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <Flame
             size={16}
@@ -84,6 +78,12 @@ function LeaderboardRow({ entry }: LeaderboardRowProps) {
         <div className="flex items-center gap-2 text-text">
           <Calendar size={14} className="text-muted" />
           {entry.active_days}
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2 text-text font-mono">
+          <Clock size={14} className="text-muted" />
+          {formatTime(entry.total_time)}
         </div>
       </td>
     </tr>
@@ -152,13 +152,13 @@ export default function Leaderboard() {
                     Name
                   </th>
                   <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
-                    Total Time
-                  </th>
-                  <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
                     Streak
                   </th>
                   <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
                     Active Days
+                  </th>
+                  <th className="text-left text-sm font-semibold text-muted uppercase tracking-wide px-6 py-4">
+                    Total Time
                   </th>
                 </tr>
               </thead>
@@ -178,7 +178,7 @@ export default function Leaderboard() {
       )}
 
       <p className="text-sm text-muted mt-6">
-        Leaderboard data is per semester. Rankings update after each saved session.
+        Leaderboard data is per semester. Rankings update after each saved session. Users are ranked by streak (highest first), then by active days, then by total time.
       </p>
     </div>
   );

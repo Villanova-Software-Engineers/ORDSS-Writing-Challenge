@@ -70,8 +70,12 @@ def get_all_sessions(
     
     query = db.query(WritingSession).options(joinedload(WritingSession.user))
 
-    if semester_id:
+    # Filter by exact semester match to prevent showing sessions from deleted semesters
+    if semester_id is not None:
         query = query.filter(WritingSession.semester_id == semester_id)
+    else:
+        # Only sessions with NULL semester_id (no active semester case)
+        query = query.filter(WritingSession.semester_id.is_(None))
 
     if user_id:
         query = query.filter(WritingSession.user_id == user_id)
