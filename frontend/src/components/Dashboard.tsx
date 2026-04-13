@@ -19,6 +19,7 @@ import {
   useUpdateStreak,
   useActiveSemester,
   useSessions,
+  useTodaySessions,
   useSaveSession,
   useInfiniteMessages,
   useLikeMessage,
@@ -280,33 +281,13 @@ export default function Dashboard() {
 
   const { data: streak, isLoading: streakLoading } = useCurrentStreak();
   const { data: semester } = useActiveSemester();
-  const { data: allSessionsData } = useSessions(1000); // Get all sessions for total
+  const { data: allSessionsData } = useSessions(1000, semester?.id); // Get sessions for current semester
+  const { data: todaySessionsData } = useTodaySessions();
   const updateStreak = useUpdateStreak();
   const saveSession = useSaveSession();
 
-  // Calculate today's total time from saved sessions (using EST/EDT)
-  const todayWritingTime = (() => {
-    if (!allSessionsData?.sessions) return currentTimerSeconds;
-
-    // Get today's start in EST/EDT (midnight in Eastern Time)
-    // Convert current time to EST by getting UTC time and subtracting 5 hours
-    const now = new Date();
-    const estOffset = -5 * 60; // EST is UTC-5 (minutes)
-    const estTime = new Date(now.getTime() + (now.getTimezoneOffset() + estOffset) * 60000);
-
-    // Set to midnight EST
-    const todayStart = new Date(estTime.getFullYear(), estTime.getMonth(), estTime.getDate(), 0, 0, 0, 0);
-    // Convert back to UTC for comparison
-    const todayStartUTC = new Date(todayStart.getTime() - (now.getTimezoneOffset() + estOffset) * 60000);
-
-    const todaySessions = allSessionsData.sessions.filter(session => {
-      const sessionDate = new Date(session.started_at);
-      return sessionDate >= todayStartUTC;
-    });
-
-    const todayTotal = todaySessions.reduce((sum, session) => sum + session.duration, 0);
-    return todayTotal + currentTimerSeconds;
-  })();
+  // Calculate today's total time using backend endpoint (properly handles EST/EDT)
+  const todayWritingTime = (todaySessionsData?.total_time ?? 0) + currentTimerSeconds;
 
   const handleTimerUpdate = useCallback((seconds: number) => {
     setCurrentTimerSeconds(seconds);
