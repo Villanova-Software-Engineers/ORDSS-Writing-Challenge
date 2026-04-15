@@ -4,6 +4,9 @@
  * Handles Firebase authentication state and syncs user profile with backend.
  * Triggers backend sync after each successful Firebase login to ensure
  * user data (name, email, admin status) is stored in PostgreSQL.
+ *
+ * Includes automatic server recovery: when server startup is detected,
+ * automatically polls until server is available.
  */
 
 import {
@@ -13,11 +16,12 @@ import {
   useState,
   useCallback,
   ReactNode,
+  useRef,
 } from "react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { auth, authReady } from "../firebase/config";
-import { api } from "../services/apiClient";
+import { api, ApiClientError } from "../services/apiClient";
 import { queryKeys } from "../hooks/useApi";
 import type { UserProfile } from "../types/api.types";
 
@@ -27,6 +31,7 @@ interface AuthContextValue {
   profile: UserProfile | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isServerStarting: boolean;
   syncProfile: () => Promise<void>;
 }
 
@@ -41,7 +46,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isServerStarting, setIsServerStarting] = useState(false);
   const queryClient = useQueryClient();
+  const recoveryIntervalRef = useRef<number | null>(null);
+
+  /**
+   * Cleans up any active recovery polling
+   */
+  const clearRecoveryInterval = useCallback(() => {
+    if (recoveryIntervalRef.current) {
+      clearInterval(recoveryIntervalRef.current);
+      recoveryIntervalRef.current = null;
+    }
+  }, []);
 
   /**
    * Syncs the user profile with the backend.
@@ -51,6 +68,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const syncProfile = useCallback(async () => {
     if (!user) {
       setProfile(null);
+      setIsLoading(false);
+      clearRecoveryInterval();
       return;
     }
 
@@ -58,14 +77,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Fetching profile triggers backend to sync Firebase data
       const fetchedProfile = await api.get<UserProfile>("/api/profile");
       setProfile(fetchedProfile);
+      setIsServerStarting(false);
+      setIsLoading(false);
+      clearRecoveryInterval();
 
       // Update the query cache so useProfile() has fresh data
       queryClient.setQueryData(queryKeys.profile, fetchedProfile);
     } catch (error) {
-      console.error("[AuthProvider] Failed to sync profile:", error);
-      setProfile(null);
+      // Check if this is a server startup error
+      if (error instanceof ApiClientError && error.isServerStartup) {
+        setIsServerStarting(true);
+        setIsLoading(false);
+      } else {
+        setProfile(null);
+        setIsLoading(false);
+      }
     }
-  }, [user, queryClient]);
+  }, [user, queryClient, clearRecoveryInterval]);
 
   // Listen to Firebase auth state changes
   useEffect(() => {
@@ -93,6 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         setUser(firebaseUser);
+        setIsLoading(false); // User logged in, stop showing loading screen while we fetch profile
 
         if (firebaseUser) {
           // User logged in with verified email - sync profile with backend
@@ -100,22 +129,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const fetchedProfile = await api.get<UserProfile>("/api/profile");
             if (isMounted) {
               setProfile(fetchedProfile);
+              setIsServerStarting(false);
               queryClient.setQueryData(queryKeys.profile, fetchedProfile);
             }
           } catch (error) {
-            console.error("[AuthProvider] Failed to fetch profile:", error);
             if (isMounted) {
-              setProfile(null);
+              // Check if this is a server startup error
+              if (error instanceof ApiClientError && error.isServerStartup) {
+                setIsServerStarting(true);
+              } else {
+                setProfile(null);
+              }
             }
           }
         } else {
           // User logged out - clear profile
           setProfile(null);
           queryClient.removeQueries({ queryKey: queryKeys.profile });
-        }
-
-        if (isMounted) {
-          setIsLoading(false);
         }
       });
     };
@@ -130,6 +160,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [queryClient]);
 
+  /**
+   * Automatic server recovery polling
+   * When the server is detected as starting, automatically attempt to recover
+   * by polling the profile endpoint every 3 seconds until it succeeds.
+   */
+  useEffect(() => {
+    if (!isServerStarting || !user) {
+      clearRecoveryInterval();
+      return;
+    }
+
+    // Start recovery polling immediately, then every 3 seconds
+    const attemptRecovery = async () => {
+      try {
+        const fetchedProfile = await api.get<UserProfile>("/api/profile");
+        setProfile(fetchedProfile);
+        setIsServerStarting(false);
+        setIsLoading(false);
+        queryClient.setQueryData(queryKeys.profile, fetchedProfile);
+        clearRecoveryInterval();
+      } catch (error) {
+        // If it's still a server startup error, continue polling
+        // Otherwise, stop polling (it's a different kind of error)
+        if (!(error instanceof ApiClientError && error.isServerStartup)) {
+          setIsLoading(false);
+          clearRecoveryInterval();
+        }
+      }
+    };
+
+    // Try immediately first
+    attemptRecovery();
+
+    // Set up polling every 3 seconds
+    recoveryIntervalRef.current = setInterval(attemptRecovery, 3000);
+
+    return () => {
+      clearRecoveryInterval();
+    };
+  }, [isServerStarting, user, queryClient, clearRecoveryInterval]);
+
   const isAdmin = profile?.is_admin ?? false;
 
   const value: AuthContextValue = {
@@ -137,6 +208,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     profile,
     isLoading,
     isAdmin,
+    isServerStarting,
     syncProfile,
   };
 

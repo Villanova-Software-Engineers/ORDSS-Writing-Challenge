@@ -1,7 +1,6 @@
 // src/App.jsx
 import "./App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import SignUpPage from "./auth/pages/SignUpPage";
 import EmailVerificationPage from "./auth/components/EmailVerificationPage";
 import SignInPage from "./auth/pages/SignInPage";
@@ -16,22 +15,18 @@ import MessageBoard from "./components/MessageBoard";
 import Leaderboard from "./components/Leaderboard";
 import AdminPage from "./components/admin/AdminPage";
 import FloatingMiniTimer from "./components/FloatingMiniTimer";
+import ServerStarting from "./components/ServerStarting";
+import ServerWakeUpWrapper from "./components/ServerWakeUpWrapper";
 import { TimerProvider } from "./context/TimerContext";
 import { useAuth } from "./providers/AuthProvider";
 
 function LoadingScreen() {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="animate-spin text-primary" size={32} />
-        <p className="text-muted text-sm">Loading...</p>
-      </div>
-    </div>
-  );
+  return <ServerStarting />;
 }
 
 function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth();
+
   if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth/sign-in" replace />;
   return children;
@@ -40,14 +35,9 @@ function ProtectedRoute({ children }) {
 function SemesterProtectedRoute({ children }) {
   const { user, profile, isLoading, isAdmin } = useAuth();
 
-  if (isLoading) return <LoadingScreen />;
+  if (isLoading || !profile) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth/sign-in" replace />;
   if (isAdmin) return children;
-
-  // Wait for profile to load before checking semester
-  if (!profile) {
-    return <LoadingScreen />;
-  }
 
   if (!profile.current_semester?.is_active) {
     return <Navigate to="/auth/professor-code" replace />;
@@ -65,6 +55,7 @@ function PublicRoute({ children }) {
 
 function AdminRoute({ children }) {
   const { user, isLoading, isAdmin } = useAuth();
+
   if (isLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth/sign-in" replace />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
@@ -110,17 +101,19 @@ function AppLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<PublicRoute><SignInPage /></PublicRoute>} />
-        <Route path="/auth/sign-in" element={<PublicRoute><SignInPage /></PublicRoute>} />
-        <Route path="/auth/sign-up" element={<PublicRoute><SignUpPage /></PublicRoute>} />
-        <Route path="/auth/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-        <Route path="/auth/professor-code" element={<ProfessorCodePage />} />
-        <Route path="/auth/semester-success" element={<ProtectedRoute><SemesterSuccessPage /></ProtectedRoute>} />
-        <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
-        <Route path="/admin/*" element={<AdminLayout />} />
-        <Route path="/*" element={<AppLayout />} />
-      </Routes>
+      <ServerWakeUpWrapper>
+        <Routes>
+          <Route path="/" element={<PublicRoute><SignInPage /></PublicRoute>} />
+          <Route path="/auth/sign-in" element={<PublicRoute><SignInPage /></PublicRoute>} />
+          <Route path="/auth/sign-up" element={<PublicRoute><SignUpPage /></PublicRoute>} />
+          <Route path="/auth/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/auth/professor-code" element={<ProfessorCodePage />} />
+          <Route path="/auth/semester-success" element={<ProtectedRoute><SemesterSuccessPage /></ProtectedRoute>} />
+          <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
+          <Route path="/admin/*" element={<AdminLayout />} />
+          <Route path="/*" element={<AppLayout />} />
+        </Routes>
+      </ServerWakeUpWrapper>
     </BrowserRouter>
   );
 }

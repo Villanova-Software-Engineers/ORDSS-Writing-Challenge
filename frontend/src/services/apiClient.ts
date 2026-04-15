@@ -6,22 +6,26 @@
  * - Typed request/response handling
  * - Comprehensive error handling
  * - Request/response interceptors pattern
+ * - Server startup detection for Render free tier
  */
 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, authReady } from "../firebase/config";
 import type { ApiError } from "../types/api.types";
+import { isServerStartupError } from "../utils/serverStatus";
 
 // ── Custom API Error Class ──────────────────────────────────────────────────
 export class ApiClientError extends Error {
   public readonly status: number;
   public readonly detail: string;
+  public readonly isServerStartup: boolean;
 
-  constructor(status: number, detail: string) {
+  constructor(status: number, detail: string, isServerStartup = false) {
     super(`${status}: ${detail}`);
     this.name = "ApiClientError";
     this.status = status;
     this.detail = detail;
+    this.isServerStartup = isServerStartup;
   }
 
   get isUnauthorized(): boolean {
@@ -180,12 +184,27 @@ export async function apiClient<TResponse = unknown, TBody = unknown>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  // Make request
-  const res = await fetch(url.toString(), {
-    method,
-    headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  // Make request with timeout detection for server startup
+  let res: Response;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+    res = await fetch(url.toString(), {
+      method,
+      headers,
+      signal: controller.signal,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+
+    clearTimeout(timeoutId);
+  } catch (error: any) {
+    // Detect if this is a server startup error
+    if (isServerStartupError(error)) {
+      throw new ApiClientError(503, "Server is starting up. Please wait...", true);
+    }
+    throw new ApiClientError(0, error.message || "Network request failed");
+  }
 
   // Handle errors
   if (!res.ok) {
@@ -215,7 +234,9 @@ export async function apiClient<TResponse = unknown, TBody = unknown>(
       }
     }
 
-    throw new ApiClientError(res.status, detail);
+    // Check if this is a server startup error (503, 502, etc.)
+    const isStartupError = res.status === 503 || res.status === 502 || res.status === 504;
+    throw new ApiClientError(res.status, detail, isStartupError);
   }
 
   // Handle successful responses
