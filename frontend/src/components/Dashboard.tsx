@@ -342,7 +342,7 @@ export default function Dashboard() {
                 />
               )}
               <span className="text-3xl font-bold text-text">
-                {streakLoading ? "—" : `${streakCount} days`}
+                {streakLoading ? "—" : `${streakCount} ${streakCount === 1 ? "day" : "days"}`}
               </span>
             </div>
           </div>
