@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Trophy, Calendar, Clock, Flame } from "lucide-react";
 import AdminSection from "./AdminSection";
 import { useSemesters, useArchivedLeaderboard } from "../../hooks/useApi";
@@ -70,6 +70,16 @@ function ArchivedLeaderboardPanel() {
 
   const semesters = allSemesters || [];
   const selectedSemester = semesters.find(s => s.id === selectedSemesterId);
+
+  // Default to active semester when data loads
+  useEffect(() => {
+    if (semesters.length > 0 && selectedSemesterId === null) {
+      const activeSemester = semesters.find(s => s.is_active);
+      if (activeSemester) {
+        setSelectedSemesterId(activeSemester.id);
+      }
+    }
+  }, [semesters, selectedSemesterId]);
   const entries = leaderboardData?.entries || [];
 
   if (semestersLoading) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Clock, FileDown, Plus, Edit2, Trash2, X, Check, Calendar } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -18,12 +18,23 @@ function TimeLogPanel() {
   const updateSessionMutation = useAdminUpdateSession();
   const deleteSessionMutation = useAdminDeleteSession();
 
+  const { data: semestersData } = useSemesters();
+
+  // Default to active semester when data loads
+  useEffect(() => {
+    if (semestersData && semestersData.length > 0 && selectedSemesterId === "") {
+      const activeSemester = semestersData.find(s => s.is_active);
+      if (activeSemester) {
+        setSelectedSemesterId(String(activeSemester.id));
+      }
+    }
+  }, [semestersData, selectedSemesterId]);
+
   const { data: sessionsData, isLoading: sessionsLoading } = useAdminSessions(
     100,
     selectedSemesterId ? parseInt(selectedSemesterId) : undefined,
     selectedUserId ? parseInt(selectedUserId) : undefined
   );
-  const { data: semestersData } = useSemesters();
 
   const formatDuration = (seconds) => {
     const h = Math.floor(seconds / 3600);
