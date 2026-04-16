@@ -2,7 +2,7 @@ from app.api.deps import (
     APIRouter, Depends, Request, Session,
     limiter, get_db, CurrentUser, require_semester_registration,
 )
-from app.schemas.streak import StreakResponse
+from app.schemas.streak import StreakResponse, StreakUpdateRequest
 from app.crud.streak import get_user_streak, update_user_streak, streak_to_response
 
 router = APIRouter(prefix="/streaks", tags=["Streaks"])
@@ -23,8 +23,14 @@ async def get_current_streak(
 @limiter.limit("30/minute;300/hour")
 async def update_streak(
     request: Request,
+    data: StreakUpdateRequest,
     current_user: CurrentUser = Depends(require_semester_registration),
     db: Session = Depends(get_db),
 ):
-    streak = update_user_streak(current_user.id, db, current_user.current_semester_id)
+    streak = update_user_streak(
+        current_user.id,
+        db,
+        current_user.current_semester_id,
+        session_started_at=data.session_started_at
+    )
     return streak_to_response(streak)

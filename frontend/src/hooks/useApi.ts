@@ -78,12 +78,13 @@ export function useCurrentStreak(
 }
 
 export function useUpdateStreak(
-  options?: UseMutationOptions<StreakResponse, Error>
+  options?: UseMutationOptions<StreakResponse, Error, { session_started_at: string }>
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => api.post<StreakResponse>("/api/streaks/update"),
+    mutationFn: (data: { session_started_at: string }) =>
+      api.post<StreakResponse>("/api/streaks/update", data),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.streakCurrent, data);
       // Invalidate leaderboard since streak changed

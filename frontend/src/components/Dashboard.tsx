@@ -275,10 +275,12 @@ export default function Dashboard() {
       // Save session to backend
       const now = new Date();
       const startTime = new Date(now.getTime() - session.duration * 1000);
+      const startTimeISO = startTime.toISOString();
+
       saveSession.mutate(
         {
           duration: session.duration,
-          started_at: startTime.toISOString(),
+          started_at: startTimeISO,
           ended_at: now.toISOString(),
           description: session.description,
         },
@@ -290,12 +292,11 @@ export default function Dashboard() {
               // Auto-hide the warning after 15 seconds
               setTimeout(() => setWarningMessage(null), 15000);
             }
+            // Update streak with the session's start time (for correct date attribution)
+            updateStreak.mutate({ session_started_at: startTimeISO });
           },
         }
       );
-
-      // Update streak
-      updateStreak.mutate();
     },
     [updateStreak, saveSession]
   );
