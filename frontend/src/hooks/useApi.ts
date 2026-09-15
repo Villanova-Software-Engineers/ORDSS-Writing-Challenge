@@ -14,7 +14,7 @@ import {
   type UseMutationOptions,
   type UseInfiniteQueryOptions,
 } from "@tanstack/react-query";
-import { api } from "../services/apiClient";
+import { api, ApiClientError } from "../services/apiClient";
 import type {
   StreakResponse,
   Semester,
@@ -104,8 +104,11 @@ export function useActiveSemester(
       try {
         return await api.get<Semester>("/api/semesters/active");
       } catch (error) {
-        // Return null if no active semester
-        return null;
+        // Only a 404 means "no active semester exists". Any other failure
+        // (server error, dead DB connection, network) must be thrown so React
+        // Query retries it instead of caching null as a real answer for 5 min.
+        if (error instanceof ApiClientError && error.status === 404) return null;
+        throw error;
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
