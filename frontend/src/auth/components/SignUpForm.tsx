@@ -193,14 +193,17 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
         >
           Go to sign in
         </button>
-        <button
-          type="button"
-          onClick={handleResend}
-          disabled={isResending}
-          className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-background py-3 text-sm font-semibold text-text transition-colors hover:bg-text/5 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isResending ? 'Sending…' : "Didn't get it? Resend verification email"}
-        </button>
+        <div className="mt-2">
+          <span className="text-sm font-medium text-text">Didn&apos;t get it?</span>
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={isResending}
+            className="ml-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isResending ? 'Sending…' : 'Resend verification email'}
+          </button>
+        </div>
       </div>
     );
   }

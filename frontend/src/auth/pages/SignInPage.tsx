@@ -95,7 +95,7 @@ const SignInPage: React.FC = () => {
                     type="button"
                     onClick={handleResend}
                     disabled={isResending || isLoading}
-                    className="self-start rounded-lg border border-red-400/40 bg-background px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="self-start text-sm text-primary hover:text-primary/80 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isResending ? 'Sending…' : 'Resend verification email'}
                   </button>
