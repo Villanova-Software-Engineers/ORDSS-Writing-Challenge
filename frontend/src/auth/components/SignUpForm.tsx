@@ -25,6 +25,26 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [sentToEmail, setSentToEmail] = useState('');
   const [signUpMessage, setSignUpMessage] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+
+  // The form still holds the credentials on the success screen, so we can resend
+  // without a signed-in session (signUp signs the user out on purpose).
+  const handleResend = async () => {
+    setIsResending(true);
+    setResendMessage('');
+    try {
+      const response = await AuthService.resendVerificationEmail({
+        email: sentToEmail,
+        password: formData.password,
+      });
+      setResendMessage(response.message);
+    } catch (error: any) {
+      setResendMessage(error?.message || 'Failed to resend verification email. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
+  };
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordChecks, setPasswordChecks] = useState({
@@ -163,12 +183,23 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
           We sent a verification link to <span className="font-semibold text-text">{sentToEmail}</span>.
           Click the link in your inbox (check spam too), then sign in.
         </p>
+        {resendMessage && (
+          <p className="max-w-sm text-sm text-text">{resendMessage}</p>
+        )}
         <button
           type="button"
           onClick={() => navigate('/')}
           className="mt-2 w-full rounded-xl bg-primary py-3.5 text-base font-medium text-white transition duration-200 hover:bg-primary/90 active:bg-primary/80"
         >
           Go to sign in
+        </button>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={isResending}
+          className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-background py-3 text-sm font-semibold text-text transition-colors hover:bg-text/5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isResending ? 'Sending…' : "Didn't get it? Resend verification email"}
         </button>
       </div>
     );

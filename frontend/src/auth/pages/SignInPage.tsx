@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash, FaEnvelope, FaLock } from 'react-icons/fa';
-import { AuthService } from '../services/auth.service';
+import { AuthService, EMAIL_NOT_VERIFIED } from '../services/auth.service';
 import ThemeToggle from '../components/ThemeToggle';
 import AuthHero from '../components/AuthHero';
 
@@ -13,6 +13,22 @@ const SignInPage: React.FC = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+
+  const handleResend = async () => {
+    setIsResending(true);
+    setResendMessage('');
+    try {
+      const response = await AuthService.resendVerificationEmail({ email: email.trim(), password });
+      setResendMessage(response.message);
+    } catch (error: any) {
+      setResendMessage(error?.message || 'Failed to resend verification email. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
@@ -25,6 +41,8 @@ const SignInPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setNeedsVerification(false);
+    setResendMessage('');
 
     if (!validate()) return;
 
@@ -37,7 +55,8 @@ const SignInPage: React.FC = () => {
       navigate('/auth/professor-code', { state: { email: email.trim() } });
     } catch (error: any) {
       const message = error?.message || 'Sign-in failed. Please try again.';
-      if (message.includes('verify your email')) {
+      if (error?.code === EMAIL_NOT_VERIFIED) {
+        setNeedsVerification(true);
         setErrors({
           general: 'Please verify your email before signing in. Open your inbox and confirm your account first.',
         });
@@ -68,8 +87,23 @@ const SignInPage: React.FC = () => {
           </div>
 
           {errors.general && (
-            <div className="mb-6 rounded-xl border border-red-400/30 bg-red-50 dark:bg-red-900/20 p-4 flex items-center gap-3">
+            <div className="mb-6 rounded-xl border border-red-400/30 bg-red-50 dark:bg-red-900/20 p-4 flex flex-col gap-3">
               <span className="text-red-700 dark:text-red-300 text-sm">{errors.general}</span>
+              {needsVerification && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={isResending || isLoading}
+                    className="self-start rounded-lg border border-red-400/40 bg-background px-3 py-2 text-sm font-semibold text-text transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isResending ? 'Sending…' : 'Resend verification email'}
+                  </button>
+                  {resendMessage && (
+                    <span className="text-sm text-text">{resendMessage}</span>
+                  )}
+                </>
+              )}
             </div>
           )}
 
