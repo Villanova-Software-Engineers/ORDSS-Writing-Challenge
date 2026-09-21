@@ -107,8 +107,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (!isMounted) return;
 
-        // Only set user if email is verified (or if user is null for logout)
-        // This prevents unverified users from being treated as authenticated
         if (firebaseUser && !firebaseUser.emailVerified) {
           // User exists but email not verified - treat as logged out
           setUser(null);
