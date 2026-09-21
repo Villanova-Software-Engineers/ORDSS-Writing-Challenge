@@ -10,10 +10,6 @@ const secondaryButton =
 const inputClass =
   'w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-background px-4 py-3 text-text focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200';
 
-// Two ways to arrive here:
-//  1. Signed in but unverified (rare: the app signs unverified users out).
-//  2. Signed out. This is the normal case, because the verification email's link
-//     lands here after Firebase confirms the address. We must not bounce away.
 const EmailVerificationPage: React.FC = () => {
   const navigate = useNavigate();
   const [hasSession, setHasSession] = useState<boolean | null>(null);
