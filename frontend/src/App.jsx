@@ -25,9 +25,11 @@ function LoadingScreen() {
 }
 
 function ProtectedRoute({ children }) {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
 
-  if (isLoading) return <LoadingScreen />;
+  // Hold the app shell (sidebar included) until the profile has actually loaded,
+  // otherwise the sidebar mounts next to the server-starting screen on a cold start.
+  if (isLoading || (user && !profile)) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth/sign-in" replace />;
   return children;
 }
