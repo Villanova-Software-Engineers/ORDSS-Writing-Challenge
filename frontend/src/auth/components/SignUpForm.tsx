@@ -28,8 +28,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
   const [isResending, setIsResending] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
 
-  // The form still holds the credentials on the success screen, so we can resend
-  // without a signed-in session (signUp signs the user out on purpose).
+
   const handleResend = async () => {
     setIsResending(true);
     setResendMessage('');
