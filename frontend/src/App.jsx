@@ -25,9 +25,10 @@ function LoadingScreen() {
 }
 
 function ProtectedRoute({ children }) {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
 
-  if (isLoading) return <LoadingScreen />;
+
+  if (isLoading || (user && !profile)) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth/sign-in" replace />;
   return children;
 }

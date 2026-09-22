@@ -18,7 +18,7 @@ import {
   ReactNode,
   useRef,
 } from "react";
-import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { auth, authReady } from "../firebase/config";
 import { api, ApiClientError } from "../services/apiClient";
@@ -107,8 +107,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (!isMounted) return;
 
-        // Only set user if email is verified (or if user is null for logout)
-        // This prevents unverified users from being treated as authenticated
         if (firebaseUser && !firebaseUser.emailVerified) {
           // User exists but email not verified - treat as logged out
           setUser(null);
@@ -138,7 +136,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
               if (error instanceof ApiClientError && error.isServerStartup) {
                 setIsServerStarting(true);
               } else {
+                // Token rejected or similar: there is no profile to show, so drop
+                // the session rather than leaving the app stuck on the loading screen.
                 setProfile(null);
+                await signOut(auth);
               }
             }
           }

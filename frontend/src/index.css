@@ -48,11 +48,11 @@ select {
 
 /* React DatePicker Styling */
 .react-datepicker {
-  @apply bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-xl shadow-xl font-sans;
+  @apply bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-none shadow-xl font-sans;
 }
 
 .react-datepicker__header {
-  @apply bg-blue-400 dark:bg-blue-500 border-b-2 border-blue-500 dark:border-blue-600 rounded-t-xl pt-3;
+  @apply bg-blue-400 dark:bg-blue-500 border-b-2 border-blue-500 dark:border-blue-600 rounded-none pt-3;
 }
 
 .react-datepicker__current-month {
@@ -88,7 +88,7 @@ select {
 }
 
 .react-datepicker__time {
-  @apply bg-white dark:bg-slate-800 rounded-br-xl;
+  @apply bg-white dark:bg-slate-800 rounded-none;
 }
 
 .react-datepicker__time-box {
