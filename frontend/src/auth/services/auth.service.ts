@@ -19,6 +19,34 @@ import type {
   User,
 } from '../types/auth.types';
 
+// Error code thrown by signIn when the account exists but the email is unverified.
+// UI code should check this instead of matching on the message text.
+export const EMAIL_NOT_VERIFIED = 'auth/email-not-verified';
+
+const VERIFY_EMAIL_SETTINGS = () => ({
+  url: window.location.origin + '/auth/verify-email',
+  handleCodeInApp: false,
+});
+
+function emailNotVerifiedError(): Error {
+  const error = new Error('Please verify your email before signing in. Check your inbox for the verification link.');
+  (error as Error & { code: string }).code = EMAIL_NOT_VERIFIED;
+  return error;
+}
+
+// Turn Firebase's error codes into something a user can act on.
+function friendlyResendError(error: unknown): Error {
+  const code = (error as { code?: string })?.code;
+  if (code === 'auth/too-many-requests') {
+    return new Error('Too many attempts. Please wait a few minutes before requesting another email.');
+  }
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+    return new Error('Invalid email or password.');
+  }
+  if (error instanceof Error) return error;
+  return new Error('Failed to resend verification email. Please try again.');
+}
+
 export class AuthService {
   private static buildFallbackUser(firebaseUser: FirebaseUser): User {
     const displayNameParts = (firebaseUser.displayName || '').trim().split(/\s+/).filter(Boolean);
@@ -47,8 +75,11 @@ export class AuthService {
     // Check if email is verified (already available from signIn, no reload needed)
     if (!firebaseUser.emailVerified) {
       await firebaseSignOut(auth);
-      throw new Error('Please verify your email before signing in. Check your inbox for the verification link.');
+      throw emailNotVerifiedError();
     }
+
+    // Keep the Firestore flag in step with Firebase Auth. Not awaited: sign-in must not block on it.
+    setDoc(doc(db, 'users', firebaseUser.uid), { emailVerified: true }, { merge: true }).catch(() => {});
 
     // Start profile fetch but don't block sign-in on it
     const profilePromise = this.getUserProfile(firebaseUser.uid).catch((error) => {
@@ -99,10 +130,7 @@ export class AuthService {
     };
 
     // Require verification email send to succeed before returning success to UI.
-    await sendEmailVerification(firebaseUser, {
-      url: window.location.origin + '/auth/verify-email',
-      handleCodeInApp: false,
-    });
+    await sendEmailVerification(firebaseUser, VERIFY_EMAIL_SETTINGS());
 
     // IMPORTANT: Wait for profile creation to complete before signing out
     // This ensures the profile exists in Firestore before the user can sign in
@@ -157,35 +185,56 @@ export class AuthService {
     };
   }
 
-  // Resend verification email
-  static async resendVerificationEmail(): Promise<{ success: boolean; message: string }> {
+  // Resend verification email.
+  //
+  // Unverified users are never left signed in (signUp and signIn both sign them out),
+  // so there is normally no auth.currentUser to send from. Pass the user's credentials
+  // and this will sign in, send the email, and sign straight back out. Without
+  // credentials it falls back to whoever is currently signed in.
+  static async resendVerificationEmail(
+    credentials?: SignInRequest,
+  ): Promise<{ success: boolean; message: string }> {
     await authReady;
-    const firebaseUser = auth.currentUser;
-    
-    if (!firebaseUser) {
-      throw new Error('No user is currently signed in');
+
+    let firebaseUser: FirebaseUser | null = auth.currentUser;
+    let signedInHere = false;
+
+    if (credentials) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+        firebaseUser = userCredential.user;
+        signedInHere = true;
+      } catch (error) {
+        throw friendlyResendError(error);
+      }
     }
 
-    if (firebaseUser.emailVerified) {
-      return {
-        success: false,
-        message: 'Your email is already verified',
-      };
+    if (!firebaseUser) {
+      throw new Error('Enter your email and password so we know where to send the verification link.');
     }
 
     try {
-      await sendEmailVerification(firebaseUser, {
-        url: window.location.origin + '/auth/verify-email',
-        handleCodeInApp: false,
-      });
-    } catch (error: any) {
-      throw error;
+      if (firebaseUser.emailVerified) {
+        return {
+          success: false,
+          message: 'Your email is already verified. You can sign in.',
+        };
+      }
+
+      await sendEmailVerification(firebaseUser, VERIFY_EMAIL_SETTINGS());
+
+      return {
+        success: true,
+        message: 'Verification email sent! Please check your inbox and spam folder.',
+      };
+    } catch (error) {
+      throw friendlyResendError(error);
+    } finally {
+      // Never leave an unverified session behind; that is what the rest of the app assumes.
+      if (signedInHere) {
+        await firebaseSignOut(auth).catch(() => {});
+      }
     }
-    
-    return {
-      success: true,
-      message: 'Verification email sent! Please check your inbox and spam folder.',
-    };
   }
 
   // Check and update email verification status

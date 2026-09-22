@@ -14,7 +14,7 @@ export default function ServerWakeUpWrapper({ children }) {
   const location = useLocation();
 
   // Don't show server starting screen on auth pages that don't require backend communication
-  const authPagesWithoutBackend = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password'];
+  const authPagesWithoutBackend = ['/auth/sign-in', '/auth/sign-up', '/auth/forgot-password', '/auth/verify-email'];
   const isAuthPageWithoutBackend = authPagesWithoutBackend.includes(location.pathname) || location.pathname === '/';
 
   if (showStartingScreen && !isAuthPageWithoutBackend) {
