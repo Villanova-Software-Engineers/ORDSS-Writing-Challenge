@@ -4,6 +4,7 @@ import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaShieldAlt, FaCheckCirc
 import { useFormValidation } from '../hooks/useFormValidation';
 import { AuthService } from '../services/auth.service';
 import type { FormErrors } from '../types/auth.types';
+import ResendVerificationLink, { linkClass } from './ResendVerificationLink';
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -157,10 +158,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
         </div>
         <h3 className="text-lg font-bold text-text">Check your email</h3>
         <p className="max-w-sm rounded-xl border border-green-400/30 bg-green-50 dark:bg-green-900/20 px-3 py-2 text-sm text-green-700 dark:text-green-300">
-          {signUpMessage}
-        </p>
-        <p className="max-w-sm text-sm text-muted">
-          We sent a verification link to <span className="font-semibold text-text">{sentToEmail}</span>.
+          We sent a verification link to <span className="font-semibold">{sentToEmail}</span>.
           Click the link in your inbox (check spam too), then sign in.
         </p>
         <button
@@ -170,6 +168,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
         >
           Go to sign in
         </button>
+        <div className="mt-2">
+          <span className="text-sm font-medium text-text">Didn&apos;t get it?</span>
+          <ResendVerificationLink email={sentToEmail} password={formData.password} className="ml-1 font-medium" />
+        </div>
       </div>
     );
   }
@@ -360,7 +362,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
         <button
           type="button"
           onClick={() => navigate('/auth/sign-in')}
-          className="ml-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+          className={`${linkClass} ml-1 font-medium`}
           disabled={isLoading}
         >
           Sign in here

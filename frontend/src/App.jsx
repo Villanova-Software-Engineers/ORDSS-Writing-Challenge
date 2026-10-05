@@ -2,7 +2,6 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SignUpPage from "./auth/pages/SignUpPage";
-import EmailVerificationPage from "./auth/components/EmailVerificationPage";
 import SignInPage from "./auth/pages/SignInPage";
 import ForgotPasswordPage from "./auth/pages/ForgotPasswordPage";
 import ProfessorCodePage from "./auth/pages/ProfessorCodePage";
@@ -110,7 +109,7 @@ function App() {
           <Route path="/auth/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/auth/professor-code" element={<ProfessorCodePage />} />
           <Route path="/auth/semester-success" element={<ProtectedRoute><SemesterSuccessPage /></ProtectedRoute>} />
-          <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
+          <Route path="/auth/verify-email" element={<Navigate to="/auth/sign-in" replace />} />
           <Route path="/admin/*" element={<AdminLayout />} />
           <Route path="/*" element={<AppLayout />} />
         </Routes>

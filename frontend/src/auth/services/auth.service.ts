@@ -100,7 +100,7 @@ export class AuthService {
 
     // Require verification email send to succeed before returning success to UI.
     await sendEmailVerification(firebaseUser, {
-      url: window.location.origin + '/auth/verify-email',
+      url: window.location.origin + '/auth/sign-in',
       handleCodeInApp: false,
     });
 
@@ -158,34 +158,30 @@ export class AuthService {
   }
 
   // Resend verification email
-  static async resendVerificationEmail(): Promise<{ success: boolean; message: string }> {
+  static async resendVerificationEmail({ email, password }: SignInRequest): Promise<{ success: boolean; message: string }> {
     await authReady;
-    const firebaseUser = auth.currentUser;
-    
-    if (!firebaseUser) {
-      throw new Error('No user is currently signed in');
-    }
-
-    if (firebaseUser.emailVerified) {
-      return {
-        success: false,
-        message: 'Your email is already verified',
-      };
-    }
+    const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
 
     try {
+      if (firebaseUser.emailVerified) {
+        return {
+          success: false,
+          message: 'Your email is already verified',
+        };
+      }
+
       await sendEmailVerification(firebaseUser, {
-        url: window.location.origin + '/auth/verify-email',
+        url: window.location.origin + '/auth/sign-in',
         handleCodeInApp: false,
       });
-    } catch (error: any) {
-      throw error;
+
+      return {
+        success: true,
+        message: 'Verification email sent! Please check your inbox and spam folder.',
+      };
+    } finally {
+      await firebaseSignOut(auth);
     }
-    
-    return {
-      success: true,
-      message: 'Verification email sent! Please check your inbox and spam folder.',
-    };
   }
 
   // Check and update email verification status
